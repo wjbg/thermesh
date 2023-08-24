@@ -174,7 +174,7 @@ class Domain:
             if "h" in bc.keys():
                 if "T" in bc.keys():
                     raise KeyError("invalid combination of bc's")
-                if "T_inf" not in bc.key():
+                if "T_inf" not in bc.keys():
                     raise KeyError("no temperature provided for convective bc")
         return True
 
@@ -369,7 +369,14 @@ class QuadraticElement(Element):
 
     def K(self, mat: dict[str, float]) -> matrix:
         """Returns element stiffness matrix."""
-        pass
+        K = (mat["k"]/self.length()/3) * np.array([[7, -8, 1],
+                                                   [-8, 16, -8],
+                                                   [1, -8, 7]])
+        return K
 
     def C(self, mat: dict[str, float]) -> matrix:
-        pass
+        """Returns element damping matrix."""
+        C = (self.length()*mat["rho"]*mat["cp"]/30) * np.array([[4, 2, -1],
+                                                                [2, 16, 2],
+                                                                [-1, 2, 4]])
+        return C

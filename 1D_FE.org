@@ -5,18 +5,24 @@
 #+LATEX_HEADER: \usepackage[T1]{fontenc}
 #+LATEX_HEADER: \usepackage[utf8]{inputenc}
 #+LATEX_HEADER: \usepackage{amsmath,amssymb,amsthm}
+#+LATEX_HEADER: \DeclareMathOperator{\erfc}{erfc}
 #+LATEX_HEADER: \usepackage{enumitem}
 #+LATEX_HEADER: \usepackage{parskip}
 #+LATEX_HEADER: \usepackage{tcolorbox}
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \definecolor{light-gray}{gray}{0.95} %the shade of grey that stack exchange uses
+
 #+OPTIONS: toc:nil date:nil
-#+TITLE: 1D Heat Conduction
-#+SUBTITLE: FE formulation
+#+TITLE:  THERMESH
+#+SUBTITLE:  A Finite Element Code for 1D Heat Conduction
 #+AUTHOR:  Wouter Grouve
 #+KEYWORDS: Conduction, FE, Derivation
 #+LATEX_HEADER: \publishers{\normalsize{University of Twente, Faculty of Engineering Technology \\ Mechanics of Solids, Surfaces and Systems, Chair of Production Technology}}
 
 
 * Introduction
+
+bla
 
 
 * Derivation
@@ -26,10 +32,10 @@
 In the case of 1D heat conduction, the governing partial equation reads:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:pde}
     \rho c_\text{p}\frac{\partial T}{\partial z} -
     k_{\text{z}}\frac{\partial^2 T}{\partial z^2} -
     \dot{Q} = 0
+    \label{eq:pde}
   \end{equation}
 #+END_EXPORT
 with \(T\) the temperature, \(\rho c_{\text{p}}\) the volumetric heat capacity, \(k_{\text{z}}\) the thermal conductivity, and \(\dot{Q}\) an internal  source or sink, e.g. due to a phase transformation. The partial differential equation is subject to boundary conditions at the two ends of the domain, which can be of the Dirichlet type:
@@ -62,11 +68,11 @@ where \(\epsilon\) is the surface emissivity and \(\sigma\) is Stefan's constant
 We can approximate the solution \(T(z,t)\) of the partial differential equation using the weighted residual method:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:weighted_residual}
     \int_L w\left(
     \rho c_\text{p} \frac{\partial T}{\partial t} -
-    k_\text{z} \frac{\partial^2 T}{\partial z^2} -
+    k \frac{\partial^2 T}{\partial z^2} -
     \dot{Q} \right) \text{d}z = 0,
+    \label{eq:weighted_residual}
   \end{equation}
 #+END_EXPORT
 with \(w\) a weighting function.
@@ -77,12 +83,12 @@ with \(w\) a weighting function.
 The domain in \(N\) is now split up in smaller elements, as is indicated in Figure [[fig:elements]] which shows an element \((e)\) of length \(\ell\) that is bounded by the nodes \(i\) and \(j\). The weighted residual (Equation \ref{eq:weighted_residual}) can now be rewritten as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:weighted_residual_sum}
     \sum_{e=1}^N
     \int_\ell w\left(
       \rho c_\text{p}\frac{\partial T}{\partial t} -
-      k_\text{z}\frac{\partial^2 T}{\partial z^2} -
+      k\frac{\partial^2 T}{\partial z^2} -
       \dot{Q} \right) \text{d}z = 0.
+      \label{eq:weighted_residual_sum}
   \end{equation}
 #+END_EXPORT
 We will now make sure that the weighted residual vanishes for each element. Further, we get rid of the second derivative with respect to \(z\) in the second term using integration by parts:
@@ -90,34 +96,34 @@ We will now make sure that the weighted residual vanishes for each element. Furt
   \begin{equation*}
     \int_\ell w \rho c_\text{p}\frac{\partial T}{\partial t} \text{d}z +
     \int_\ell
-    \frac{\text{d}w}{\text{d}z}k_\text{z}\frac{\partial T}{\partial z}\text{d}z -
-    wk_\text{z}\frac{\partial T}{\partial z}\Biggr|_{z_i}^{z_j} -
+    \frac{\text{d}w}{\text{d}z}k\frac{\partial T}{\partial z}\text{d}z -
+    wk\frac{\partial T}{\partial z}\Biggr|_{z_i}^{z_j} -
     \int_\ell w \dot{Q} \text{d}z = 0,
   \end{equation*}
 #+END_EXPORT
 with \(z_i\) and \(z_j\) the element end points. Realizing that the third term represents the flux (\(q = -k \partial T / \partial z\)), the equation can be rewritten as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:weighted_residual_el}
     \int_\ell w \rho c_\text{p}\frac{\partial T}{\partial t} \text{d}z +
     \int_\ell
-    \frac{\text{d}w}{\text{d}z}k_\text{z}\frac{\partial T}{\partial z}\text{d}z
+    \frac{\text{d}w}{\text{d}z}k\frac{\partial T}{\partial z}\text{d}z
     = \int_\ell w \dot{Q} \text{d}z -
     w q \Biggr|_{z_i}^{z_j}.
+    \label{eq:weighted_residual_el}
   \end{equation}
 #+END_EXPORT
 
 #+CAPTION: Left: Elements in 1D domain. Right: Definition of local coordinate system and linear interpolation of temperature.
 #+NAME:   fig:elements
-[[./fig/elements_sf.png]]
+[[./fig/lin_elements_sf.png]]
 
 *** Linear shape functions
 
 The temperature inside an element is approximated as a linear interpolation between the bounding node temperatures as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-  \label{eq:T_approx}
     T(\zeta) = N_i(\zeta)T_i + N_j(\zeta)T_j,
+    \label{eq:T_approx}
   \end{equation}
 #+END_EXPORT
 with \(\zeta\) a local coordinate, as is illustrated in Figure [[fig:elements]], defined as:
@@ -129,9 +135,9 @@ with \(\zeta\) a local coordinate, as is illustrated in Figure [[fig:elements]],
 while the two shape functions are:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:shape_functions}
     N_i(\zeta) = \frac{1-\zeta}{2} \quad\text{and}\quad
     N_j(\zeta) = \frac{1+\zeta}{2}.
+    \label{eq:shape_functions}
   \end{equation}
 #+END_EXPORT
 The spatial derivative of the temperature with respect to \(z\) can now be calculated as:
@@ -146,35 +152,35 @@ with:
   \begin{equation*}
     \frac{\partial \zeta}{\partial z} = \frac{2}{\ell}
     \quad\text{and}\quad
-    \frac{\partial T}{\partial \zeta} = \frac{T_2 - T_1}{2},
+    \frac{\partial T}{\partial \zeta} = \frac{T_j - T_i}{2},
   \end{equation*}
 #+END_EXPORT
 such that:
 #+BEGIN_EXPORT latex
   \begin{equation}
+    \frac{\partial T}{\partial z} = \frac{T_j - T_i}{\ell},
     \label{eq:dTdz}
-    \frac{\partial T}{\partial z} = \frac{T_2 - T_1}{\ell},
   \end{equation}
 #+END_EXPORT
 which also intuitively makes sense of course. Further, noting that the shape functions do not depend on time, we can rewrite the time derivative as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:dTdt}
     \frac{\partial T}{\partial t} =
     N_i(\zeta)\frac{\partial T_i}{\partial t} +
     N_j(\zeta)\frac{\partial T_j}{\partial t}.
+    \label{eq:dTdt}
   \end{equation}
 #+END_EXPORT
 
 Following the Galerkin method, we choose our weighting function \(w\) to be our shape functions. The equation for the weighted residual for an element (Equation \ref{eq:weighted_residual_el}) can now be rewritten as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \label{eq:galerkin}
     \int_\ell N_k \rho c_\text{p}\frac{\partial T}{\partial t} \text{d}z +
     \int_\ell
-    \frac{\text{d}N_k}{\text{d}z}k_\text{z}\frac{\partial T}{\partial z}\text{d}z  =
+    \frac{\text{d}N_k}{\text{d}z}k\frac{\partial T}{\partial z}\text{d}z  =
     \int_\ell N_k \dot{Q} \text{d}z - N_k q \Biggr|_{z_i}^{z_j}
     \quad\text{for: } k = 1,2.
+    \label{eq:galerkin}
   \end{equation}
 #+END_EXPORT
 with \(N_i\) and \(N_j\) the two shape functions as defined in Equation \ref{eq:shape_functions}.
@@ -185,29 +191,31 @@ with \(N_i\) and \(N_j\) the two shape functions as defined in Equation \ref{eq:
 Before evaluating the integrals, we first rewrite the expressions from the previous section into a matrix-vector form. Starting with Equation \ref{eq:T_approx}, which can be written as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    T(\zeta) = \bold{N}\bold{T},
+    T(\zeta) = \mathbf{N}\mathbf{T},
   \end{equation*}
 #+END_EXPORT
 in which:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-  \bold{N} = [N_i(\zeta), N_j(\zeta)] \quad\text{and}\quad
-  \bold{T} = \begin{Bmatrix} T_i \\ T_j \end{Bmatrix} \,
+  \mathbf{N} = [N_i(\zeta), N_j(\zeta)] \quad\text{and}\quad
+  \mathbf{T} = \begin{Bmatrix} T_i \\ T_j \end{Bmatrix} \,
   \end{equation*}
 #+END_EXPORT
 The spatial derivative of the temperature (Equation \ref{eq:dTdz}) yields:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     \frac{\partial T}{\partial z} =
-    \frac{\partial}{\partial z}\left(\bold{N}\bold{T}\right) =
-    \bold{B}\bold{T},
+    \frac{\partial T}{\partial \zeta}\frac{\partial \zeta}{\partial z} =
+    \frac{2}{\ell}\frac{\partial\mathbf{N}\mathbf{T}}{\partial \zeta} =
+    \frac{2}{\ell}\frac{\partial \mathbf{N}}{\partial\zeta} \mathbf{T} =
+    \mathbf{B}\mathbf{T},
   \end{equation*}
 #+END_EXPORT
 with:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \bold{B} = \frac{\partial \bold{N}}{\partial z} =
-    \left[\frac{\partial N_i}{\partial z}, \frac{\partial N_j}{\partial z}\right] =
+    \mathbf{B} = \frac{2}{\ell}\frac{\partial \mathbf{N}}{\partial\zeta}= \frac{2}{\ell}
+    \left[\frac{\partial N_i}{\partial \zeta}, \frac{\partial N_j}{\partial \zeta}\right] =
     \left[-\frac{1}{\ell}, \frac{1}{\ell}\right],
   \end{equation*}
 #+END_EXPORT
@@ -215,13 +223,13 @@ while the time-derivative of the temperature can be rewritten as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     \frac{\partial T}{\partial t} =
-    \bold{N}\bold{\dot{T}}.
+    \mathbf{N}\mathbf{\dot{T}}.
   \end{equation*}
 #+END_EXPORT
 Further, for convenience, we will write our weighting functions as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    w = \bold{N}^T = \begin{Bmatrix} N_i \\ N_j \end{Bmatrix}.
+    w = \mathbf{N}^T = \begin{Bmatrix} N_i \\ N_j \end{Bmatrix}.
   \end{equation*}
 #+END_EXPORT
 #+BEGIN_EXPORT latex
@@ -232,7 +240,7 @@ We can now evaluate the integrals, starting with the first term:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     \int_\ell w \rho c_\text{p}\frac{\partial T}{\partial t} \text{d}z =
-    \rho c_\text{p}\int_\ell \bold{N}^T \bold{N} \text{d}z \; \bold{\dot{T}}.
+    \rho c_\text{p}\int_\ell \mathbf{N}^T \mathbf{N} \text{d}z \; \mathbf{\dot{T}}.
   \end{equation*}
 #+END_EXPORT
 We can rewrite this integral in terms of \(\zeta\), by making use of the derivative of \(\zeta\) with respect to \(z\):
@@ -246,15 +254,15 @@ such that:
 #+BEGIN_EXPORT latex
   \begin{equation}
   \label{eq:C}
-    \rho c_\text{p} \int_\ell \bold{N}^T \bold{N}\text{d}z \;\bold{\dot{T}} =
-    \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \bold{N}^T \bold{N} \text{d}\zeta \; \bold{\dot{T}} =
-    \bold{C}\bold{\dot{T}},
+    \rho c_\text{p} \int_\ell \mathbf{N}^T \mathbf{N}\text{d}z \;\mathbf{\dot{T}} =
+    \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \mathbf{N}^T \mathbf{N} \text{d}\zeta \; \mathbf{\dot{T}} =
+    \mathbf{C}\mathbf{\dot{T}},
   \end{equation}
 #+END_EXPORT
 with:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \bold{C} = \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \bold{N}^T\bold{N} \text{d}\zeta =
+    \mathbf{C} = \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \mathbf{N}^T\mathbf{N} \text{d}\zeta =
     \frac{\ell\rho c_\text{p}}{6}\left[\begin{matrix} 2 & 1\\
                                                  1 & 2\end{matrix}\right].
   \end{equation*}
@@ -263,16 +271,16 @@ with:
 In the same manner, the second term yields:
 #+BEGIN_EXPORT latex
   \begin{equation}
-  \label{eq:K}
-    \int_\ell \frac{\text{d}N_k}{\text{d}z}k_\text{z}\frac{\partial T}{\partial z}\text{d}z =
-    \frac{\ell k_\text{z}}{2} \int_{-1}^{1} \bold{B}^T \bold{B} \text{d}\zeta \;\bold{T} = \bold{K} \bold{T},
+    \int_\ell \frac{\text{d}N_k}{\text{d}z}k\frac{\partial T}{\partial z}\text{d}z =
+    \frac{\ell k}{2} \int_{-1}^{1} \mathbf{B}^T \mathbf{B} \text{d}\zeta \;\mathbf{T} = \mathbf{K} \mathbf{T},
+    \label{eq:K}
   \end{equation}
 #+END_EXPORT
 with:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \bold{K} = \frac{\ell k_\text{z}}{2} \int_{-1}^{1} \bold{B}^T \bold{B} \text{d}\zeta =
-    \frac{k_\text{z}}{\ell}\left[\begin{matrix} 1 & -1\\
+    \mathbf{K} = \frac{\ell k}{2} \int_{-1}^{1} \mathbf{B}^T \mathbf{B} \text{d}\zeta =
+    \frac{k}{\ell}\left[\begin{matrix} 1 & -1\\
                                                 -1 & 1\end{matrix}\right].
   \end{equation*}
 #+END_EXPORT
@@ -280,8 +288,8 @@ with:
 The first term on the right hand side yields:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \int_\ell \bold{N}^T \dot{Q} \text{d}z =
-    \frac{\ell}{2} \int_{-1}^{1} \bold{N} \text{d}\zeta \; \dot{Q} = \frac{ \dot{Q} \ell}{2} \begin{Bmatrix} 1 \\ 1 \end{Bmatrix},
+    \int_\ell \mathbf{N}^T \dot{Q} \text{d}z =
+    \frac{\ell}{2} \int_{-1}^{1} \mathbf{N} \text{d}\zeta \; \dot{Q} = \frac{ \dot{Q} \ell}{2} \begin{Bmatrix} 1 \\ 1 \end{Bmatrix},
   \end{equation*}
 #+END_EXPORT
 with \(\dot{Q}\) the heat source term for the element between nodes \(i\) and \(j\). The second term with the heat flux \(q\) on the boundary is first expanded to include both a direct heat flux \(\hat{q}\) and a flux due to convection:
@@ -310,10 +318,10 @@ The term with the direct heat flux \(\hat{q}\) is evaluated as:
 with \(\hat{q}_k\) the heat flux on the \(k\)-th node. The convective term can be accounted for using a stiffness matrix for convection:
 #+BEGIN_EXPORT latex
   \begin{equation}
-  \label{eq:H}
-    N_k h T \Biggr|_{z_i}^{z_j} = \bold{H} \bold{T} \quad{with:}\quad
-        \bold{H} = h\left[\begin{matrix} N_i N_i & N_i N_j \\
+    N_k h T \Biggr|_{z_i}^{z_j} = \mathbf{H} \mathbf{T} \quad{with:}\quad
+        \mathbf{H} = h\left[\begin{matrix} N_i N_i & N_i N_j \\
                                          N_j N_i & N_j N_j \end{matrix}\right],
+  \label{eq:H}
   \end{equation}
 #+END_EXPORT
 and an additional term in the force vector:
@@ -324,10 +332,10 @@ and an additional term in the force vector:
                           T_{\infty,j} \end{Bmatrix}.
   \end{equation*}
 #+END_EXPORT
-As an example for the stiffness matrix \(\bold{H}\), in case of a convective boundary condition at the j-th node, where \(N_i = 0\), this term would evaluate as:
+As an example for the stiffness matrix \(\mathbf{H}\), in case of a convective boundary condition at the j-th node, where \(N_i = 0\), this term would evaluate as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \bold{H} = \left[\begin{matrix} N_i N_i & N_i N_j \\
+    \mathbf{H} = \left[\begin{matrix} N_i N_i & N_i N_j \\
                                     N_j N_i & N_j N_j \end{matrix}\right] =
                \left[\begin{matrix} 0 & 0 \\
                                     0 & 1 \end{matrix}\right],
@@ -336,40 +344,125 @@ As an example for the stiffness matrix \(\bold{H}\), in case of a convective bou
 which intuitively makes sense. The force vector is now combined as:
 #+BEGIN_EXPORT latex
   \begin{equation}
-  \label{eq:f}
-  \bold{f} = \int_\ell N_k \dot{Q} \text{d}z - N_k q \Biggr|_{z_i}^{z_j} -          N_k h T_{\infty} \Biggr|_{z_i}^{z_j} =
+  \mathbf{f} = \int_\ell N_k \dot{Q} \text{d}z - N_k q \Biggr|_{z_i}^{z_j} -          N_k h T_{\infty} \Biggr|_{z_i}^{z_j} =
              \frac{\dot{Q}\ell}{2}\begin{Bmatrix} 1 \\ 1\end{Bmatrix} +
              \begin{Bmatrix}  \hat{q}_i \\
                               -\hat{q}_j \end{Bmatrix} +
              h\begin{Bmatrix}  T_{\infty,i} \\
                                -T_{\infty,j} \end{Bmatrix}.
+  \label{eq:f}
   \end{equation}
 #+END_EXPORT
 
-The final element equation can now be assembled from by subsituting Equations \ref{eq:C}, \ref{eq:K}, \ref{eq:H} and \ref{eq:f} in Equation \ref{eq:galerkin}:
+The final element equation can now be assembled from by substituting Equations \ref{eq:C}, \ref{eq:K}, \ref{eq:H} and \ref{eq:f} in Equation \ref{eq:galerkin}:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-  \bold{C}\bold{\dot{T}} + (\bold{K} + \bold{H})\bold{T} = \bold{f}.
+  \mathbf{C}\mathbf{\dot{T}} + (\mathbf{K} + \mathbf{H})\mathbf{T} = \mathbf{f}.
   \end{equation*}
 #+END_EXPORT
 
-With the local damping and stiffness matrices determined for each element, we can assemble  the global matrices using the element locations in the global system.
+With the local damping and stiffness matrices determined for each element, we can assemble  the global matrices using the node locations and element connectivity  in the global system.
 
 *** Quadratic shape functions
 
-bla
+#+CAPTION: Definition of a regular local coordinate system and quadratic interpolation of temperature.
+#+NAME:   fig:qua_elements
+#+ATTR_LATEX: :width 6cm
+[[./fig/qua_elements_sf.png]]
+
+In the case of quadratic shape functions, the temperature inside an element is approximated as:
+#+BEGIN_EXPORT latex
+  \begin{equation}
+    T(\zeta) = N_i(\zeta)T_i + N_j(\zeta)T_j + N_k(\zeta)T_k,
+    \label{eq:qua_interp}
+  \end{equation}
+#+END_EXPORT
+with reference to [[fig:qua_elements]] for the node locations. The three shape functions are now defined as:
+#+BEGIN_EXPORT latex
+  \begin{equation}
+    N_i(\zeta) = -\frac{1}{2}\zeta (1-\zeta) \quad\text{and}\quad
+    N_j(\zeta) = 1-\zeta^2 \quad\text{and}\quad
+    N_j(\zeta) = \frac{1}{2}\zeta (1+\zeta),
+    \label{eq:qua_shape_functions}
+  \end{equation}
+#+END_EXPORT
+or:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    \mathbf{N} = \left[ -\frac{1}{2}\zeta (1-\zeta),
+    1-\zeta^2,
+    \frac{1}{2}\zeta (1+\zeta)\right].
+  \end{equation*}
+#+END_EXPORT
+
+The mapping between the local coordinate \(\zeta\) and the global coordinate \(x\) is achieved by:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    z(\zeta) = N_i(\zeta)z_i + N_j(\zeta)z_j + N_i(\zeta)z_k.
+  \end{equation*}
+#+END_EXPORT
+Here, for convenience, we will consider a regular element which means that:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    z_j = \frac{z_i + z_k}{2}.
+  \end{equation*}
+#+END_EXPORT
+The  Jacobian is now evaluated as:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    \frac{\text{d}z}{\text{d}\zeta} = (\zeta - \frac{1}{2})z_i -
+                                      2\zeta z_j +
+                                      (\zeta + \frac{1}{2})z_k =
+                                      \frac{\ell}{2}.
+  \end{equation*}
+#+END_EXPORT
+The temperature gradient with respect to \(z\) can be written as:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    \frac{\text{d} T}{\text{d}z} =
+    \frac{\text{d}\zeta}{\text{d}z} \frac{\partial T}{\partial \zeta} =
+    \frac{2}{\ell}\frac{\partial \mathbf{N}}{\partial \zeta} \mathbf{T} =
+    \mathbf{B}\mathbf{T},
+  \end{equation*}
+#+END_EXPORT
+with:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+  \mathbf{B} = \frac{2}{\ell}\frac{\partial \mathbf{N}}{\partial\zeta}= \frac{2}{\ell}
+  \left[\frac{\partial N_i}{\partial \zeta}, \frac{\partial N_j}{\partial \zeta}, \frac{\partial N_k}{\partial \zeta}\right] =
+  \left[\frac{2\zeta - 1}{\ell}, -\frac{4\zeta}{\ell}, \frac{2\zeta + 1}{\ell}\right].
+  \end{equation*}
+#+END_EXPORT
+
+Now we can derive the damping matrix \(\mathbf{C}\) and the stiffness matrix \(\mathbf{K}\), in the same manner as we have done for the linear shape functions:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    \mathbf{C} = \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \mathbf{N}^T\mathbf{N} \text{d}\zeta =
+    \frac{\ell\rho c_\text{p}}{30}
+    \left[\begin{matrix} 4 & 2 & -1\\
+                         2 & 16 & 2 \\
+                         -1 & 2 & 4\end{matrix}\right],
+  \end{equation*}
+  \begin{equation*}
+    \mathbf{K} = \frac{\ell k}{2} \int_{-1}^{1} \mathbf{B}^T \mathbf{B} \text{d}\zeta =
+    \frac{k}{3\ell}
+    \left[\begin{matrix} 7 & -8 & 1\\
+                         -8 & 16 & -8\\
+                         1 & -8 & 7\end{matrix}\right].
+  \end{equation*}
+#+END_EXPORT
 
 ** Temporal discretization
 
-The final step is to integrate the equation with time. For this purpose, we will descretize the temporal variable will using the so-called \(\Theta\)-method:
+The final step is to integrate the equation with time. For this purpose, we will discretize the temporal variable will using the so-called \(\Theta\)-method:
 #+BEGIN_EXPORT latex
   \begin{equation}
-  \label{eq:theta}
-    \bold{C} \frac{\bold{T}_{\text{n}+1} - \bold{T}_\text{n}}{\Delta t} +
-    (1-\Theta)(\bold{K}+\bold{H}) \bold{T}_{\text{n}} +
-    \Theta(\bold{K}+\bold{H}) \bold{T}_{\text{n}+1}
+    \mathbf{C} \frac{\mathbf{T}_{\text{n}+1} - \mathbf{T}_\text{n}}{\Delta t} +
+    (1-\Theta)(\mathbf{K}+\mathbf{H}) \mathbf{T}_{\text{n}} +
+    \Theta(\mathbf{K}+\mathbf{H}) \mathbf{T}_{\text{n}+1}
     =
-    (1-\Theta)\bold{f}_{\text{n}} + \Theta\bold{f}_{\text{n}+1},
+    (1-\Theta)\mathbf{f}_{\text{n}} + \Theta\mathbf{f}_{\text{n}+1},
+    \label{eq:theta}
   \end{equation}
 #+END_EXPORT
 where \(\Theta \in [0, 1]\). Common values of \(\Theta\) are:
@@ -383,18 +476,20 @@ where \(\Theta \in [0, 1]\). Common values of \(\Theta\) are:
 Equation \ref{eq:theta} can be rearranged as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \Bigl( \bold{C} + \Delta t\Theta(\bold{K}+\bold{H})
-    \Bigr) \bold{T}_{\text{n}+1} =
+    \Bigl( \mathbf{C} + \Delta t\Theta(\mathbf{K}+\mathbf{H})
+    \Bigr) \mathbf{T}_{\text{n}+1} =
     \Bigl(
-    \bold{C} - \Delta t(1-\Theta)(\bold{K}+\bold{H})
-    \Bigr) \bold{T}_{\text{n}} +
-    \Delta t(1-\Theta)\bold{f}_{\text{n}} +
-    \Delta t\Theta\bold{f}_{\text{n}+1}.
+    \mathbf{C} - \Delta t(1-\Theta)(\mathbf{K}+\mathbf{H})
+    \Bigr) \mathbf{T}_{\text{n}} +
+    \Delta t(1-\Theta)\mathbf{f}_{\text{n}} +
+    \Delta t\Theta\mathbf{f}_{\text{n}+1}.
   \end{equation*}
 #+END_EXPORT
 
 
 * Validation
+
+The finite elements derived here were  implemented in an object-oriented Python code called =thermesh=, which can be found on the author's [[https://github.com/wjbg][Github]] page. Please note, with the focus on readability, the code is far from optimized. Nevertheless, I believe it should still be more than fast enough for most problems. This section presents three short validation cases to show that the code is implemented correctly. Please note that, although all presented cases use linear elements, the code was also validated for the quadratic elements Details on material properties and dimensions used for each case can be found in the respective Python file.
 
 ** Step temperature at boundary
 
@@ -406,16 +501,49 @@ Consider a domain of length \(L\) with a uniform initial temperature \(T_0\). Fo
     T(L, t) =& T_{\text{end}}
   \end{eqnarray*}
 #+END_EXPORT
-In case the initial temperature equals 0.0 \(^{\circ}\)C , the analytical solution\footnote{The Mathematics of Diffusion, Crank, 1975} yields:
+In case the initial temperature equals 0.0 \(^{\circ}\)C , the analytical solution\footnote{The Mathematics of Diffusion, Crank, 1975, pp 49-50.} yields:
 #+BEGIN_EXPORT latex
-  \begin{equation}
-  T(x) = \frac{T_{\text{end}}x}{L} + \frac{2}{\pi}
+  \begin{equation*}
+  T(x,t) = \frac{T_{\text{end}}x}{L} + \frac{2}{\pi}
          \sum_{N=1}^{\infty} \frac{T_{\text{end}} \cos N\pi}{N}
          \sin\left(\frac{N\pi x}{L}\right)
          \exp\left(-\alpha N^2 \pi^2 t / L^2 \right),
-  \end{equation}
+  \end{equation*}
 #+END_EXPORT
-with \(\alpha = k/\rho c_{\text{p}}\) the thermal diffusivity. The left graph in Figure \ref{fig:step_compare} shows the temperature distribution at different times for a domain with properties as listed in Table \ref{tbl:prop}. The right graphs shows the corresponding finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =step_change.py=.
+with \(\alpha = k/\rho c_{\text{p}}\) the thermal diffusivity. The left graph in Figure \ref{fig:step_compare} shows the temperature distribution at different times. Code listing \ref{lst:step} illustrates how to solve this problem using =thermesh=. The right graphs in Figure \ref{fig:step_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in =step_change.py=.
+
+#+BEGIN_EXPORT latex
+\lstset{basicstyle=\ttfamily}
+\begin{minipage}{\linewidth}
+\label{code:step}
+\begin{lstlisting}[language=Python, caption=Thermesh example for a step change at one end., label={lst:step}, backgroundcolor=\color{light-gray}]
+import numpy as np
+import thermesh as tm
+
+# Domain information
+L = 0.01
+k, rho, cp = 0.72, 1560, 1450
+cpeek = tm.isothermal_model(k, rho, cp)  # constitutive model
+
+# Mesh generation using linear elements
+nn = 11  # number of nodes
+z = np.linspace(0, L, nn)  # node locations
+mesh = tm.Mesh(z, tm.LinearElement)
+
+# Boundary conditions
+bc = [{"T": 0.0},  # T on the left
+      {"T": 1.0}]  # T on the right
+
+# Domain generation and initialization
+domain = tm.Domain(mesh, cpeek, bc)
+domain.set_T(np.zeros(nn))
+
+# Solve
+solver = {"dt": 0.1, "t_end": 100.0, "theta": 0.5}  # settings
+t, T = tm.solve_ht(domain, solver)
+\end{lstlisting}
+\end{minipage}
+#+END_EXPORT
 
 #+BEGIN_EXPORT latex
 \begin{figure}
@@ -428,32 +556,109 @@ with \(\alpha = k/\rho c_{\text{p}}\) the thermal diffusivity. The left graph in
   \centering
   \includegraphics[width=60mm]{fig/step_FE_t0.5_dt0.1s.png}
 \end{minipage}
-\caption{Comparison of the analytical and FE solution at different times. The numbers in the graphs indicate the time in seconds.}
+\caption{Comparison of the analytical and FE solution at different times for a step change in temperature at one end. The numbers in the graphs indicate the time in seconds.}
 \label{fig:step_compare}
 \end{figure}
 #+END_EXPORT
-#+BEGIN_EXPORT latex
-  \begin{table}[bt]
-  \centering
-  \caption{Domain properties.}
-  \label{tbl:prop}
-  \begin{tabular}{ll}
-  \textbf{Property}          & \textbf{Value} \\\hline
-  Domain length, $L$         & 0.01 m\\
-  Conductivity, $k$          & 0.72 W/m K\\
-  Density, $\rho$            & 1560 kg/m$^3$\\
-  Specific heat, $c_\text{p}$ & 1450 J/kg K\\\hline
-  \end{tabular}
-  \end{table}
-#+END_EXPORT
-
 
 ** Constant heat flux at boundary of semi-infinite solid
 
+Consider a semi-infinite domain with a uniform initial temperature. The domain is subjected to a constant heat flux \(\hat{q}\) at the boundary which causes the temperature to increase. The analytical solution\footnote{Heat Transfer, Nillis \& Klein, 2008, p 362.} for the temperature increase \(\Delta T\) in the domain yields:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+  T(x,t) - T_0(x,t) =
+  \Delta T(x,t) = \frac{\hat{q}}{k} \left[
+                  \sqrt{\frac{4\alpha t}{\pi}}
+                  \exp \left( -\frac{x^2}{4\alpha t} \right)-
+                  x \erfc \left( \frac{x}{2\sqrt{\alpha t}} \right)
+                  \right],
+  \end{equation*}
+#+END_EXPORT
+with \(\erfc\) the complementary error function. The left graph in \ref{fig:flux_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:flux} illustrates the code to solve this problem using =thermesh=. Of course, one has to make sure that the domain is large enough (or the time short enough) to be considered a semi-infinite solid in this case. The right graphs in Figure \ref{fig:flux_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =constant_heat_flux.py=.
 
+#+BEGIN_EXPORT latex
+\lstset{basicstyle=\ttfamily}
+\begin{minipage}{\linewidth}
+\label{code:flux}
+\begin{lstlisting}[language=Python, caption=Thermesh example for a constant heat flux at one end., label={lst:flux}, backgroundcolor=\color{light-gray}]
+# Clear all solution data
+domain.clear()
 
-* Use cases
+# Set new boundary conditions
+bc = [{"q": 1E5},  # q on the left
+      {"T": 0.0}]  # T on the right
 
-** Press forming
+# Solve
+solver = {"dt": 0.1, "t_end": 25.0, "theta": 0.5}  # settings
+t, T = tm.solve_ht(domain, solver)
+\end{lstlisting}
+\end{minipage}
+#+END_EXPORT
 
-** Laser assisted fiber placement
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=60mm]{fig/heatflux_analytical_sol.png}
+\end{minipage}%
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=60mm]{fig/heatflux_FE_t0.5_dt0.1s.png}
+\end{minipage}
+\caption{Comparison of the analytical and FE solution at different times in the case of a constant heat flux at one end. The numbers in the graphs indicate the time in seconds.}
+\label{fig:flux_compare}
+\end{figure}
+#+END_EXPORT
+
+** Convective boundary condition
+
+In the last example, we again consider a semi-infinite domain with a uniform initial temperature. The domain is now subjected to a convective boundary condition with a heat transfer coefficient \(h\) and a far field temperature \(T_{\infty}\). The analytical solution\footnote{See footnote 2.} for the temperature increase \(\Delta T\) in the domain yields:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+  \Delta T(x,t) = (T_{\infty} - T_0)
+                  \left[\erfc\left( \frac{x}{2\sqrt{\alpha t}} \right) -
+                  \exp\left( \frac{hx}{k}+\frac{h^2 \alpha t}{k^2} \right)
+                  \erfc\left( \frac{x}{2\sqrt{\alpha t}} + \frac{h}{k}\sqrt{\alpha t} \right) \right].
+  \end{equation*}
+#+END_EXPORT
+
+The left graph in \ref{fig:conv_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:conv} illustrates the code to solve this problem using =thermesh=. The right graphs in Figure \ref{fig:flux_compare} shows the finite element solution for 10 linear elements of equal length. As can be seen, also here good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =convective_bc.py=.
+
+#+BEGIN_EXPORT latex
+\lstset{basicstyle=\ttfamily}
+\begin{minipage}{\linewidth}
+\label{code:flux}
+\begin{lstlisting}[language=Python, caption=Thermesh example for a constant heat flux at one end., label={lst:conv}, backgroundcolor=\color{light-gray}]
+# Clear all solution data
+domain.clear()
+
+# Set new boundary conditions
+bc = [{"h": 20,
+       "T_inf": 400},  # h and T_inf on the left
+      {"T": 0.0}]      # T on the right
+
+# Solve
+solver = {"dt": 0.1, "t_end": 25.0, "theta": 0.5}  # settings
+t, T = tm.solve_ht(domain, solver)
+\end{lstlisting}
+\end{minipage}
+#+END_EXPORT
+
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=60mm]{fig/conv_analytical_sol.png}
+\end{minipage}%
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=60mm]{fig/conv_FE_t0.5_dt0.1s.png}
+\end{minipage}
+\caption{Comparison of the analytical and FE solution at different times in the case of a convective boundary condition at one end. The numbers in the graphs indicate the time in seconds.}
+\label{fig:conv_compare}
+\end{figure}
+#+END_EXPORT
+
+* Final remarks
