@@ -21,11 +21,13 @@ cases can be used as examples and inspiration.
 
 ## Minimal example
 
-Consider a domain of length \(L\) with a uniform initial temperature
-$T_0$. For $t>0$ the temperature at one end is raised to a value of
-$T_{\text{end}$, while the other end is kept at the initial
-temperature. The code below shows how to calculate the evolution of
-temperature distribution in the domain with time.
+Consider a domain of length L with a uniform initial temperature. The
+temperature at one end is raised to a fixed value, while the other end
+is kept at the initial temperature. The code below shows how to
+calculate the evolution of temperature distribution in the domain with
+time. A more elaborate implementation for this case, together with a
+comparison with the analytical solution, can be found in
+[step_change.py](src/step_change.py).
 
 ```python
 import numpy as np
