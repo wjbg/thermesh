@@ -1,3 +1,4 @@
+:SETUP:
 #+LATEX_CLASS: report_wg
 #+LATEX_CLASS_OPTIONS: [10pt, a4paper, twoside, headinclude,footinclude, BCOR5mm]
 #+LATEX_HEADER: \usepackage[nochapters, beramono, eulermath, pdfspacing, dottedtoc]{classicthesis}
@@ -11,34 +12,33 @@
 #+LATEX_HEADER: \usepackage{tcolorbox}
 #+LATEX_HEADER: \usepackage{listings}
 #+LATEX_HEADER: \definecolor{light-gray}{gray}{0.95} %the shade of grey that stack exchange uses
-
-#+OPTIONS: toc:nil date:nil
-#+TITLE:  THERMESH
-#+SUBTITLE:  A Finite Element Code for 1D Heat Conduction
-#+AUTHOR:  Wouter Grouve
-#+KEYWORDS: Conduction, FE, Derivation
 #+LATEX_HEADER: \publishers{\normalsize{University of Twente, Faculty of Engineering Technology \\ Mechanics of Solids, Surfaces and Systems, Chair of Production Technology}}
+#+KEYWORDS: Conduction, FE, Derivation
+#+OPTIONS: toc:nil date:nil
+:END:
+#+TITLE:  THERMESH
+#+SUBTITLE:  A simple FE code for 1D heat conduction
+#+AUTHOR:  Wouter Grouve
 
 
 * Introduction
 
-bla
-
+The present document presents the derivation of a element code for one dimensional transient heat conduction problems using both linear and quadratic elements. The code has been implemented in a Python package called =thermesh= is available for download from the author's Github page. Three validation cases are presented at the end of this document to show that the code is implemented correctly. Further, the validation cases can be used as examples and inspiration.
 
 * Derivation
 
 ** Governing partial differential equation and weak form
 
-In the case of 1D heat conduction, the governing partial equation reads:
+In the case of 1D heat conduction, the governing partial differential equation reads:
 #+BEGIN_EXPORT latex
   \begin{equation}
     \rho c_\text{p}\frac{\partial T}{\partial z} -
-    k_{\text{z}}\frac{\partial^2 T}{\partial z^2} -
+    k\frac{\partial^2 T}{\partial z^2} -
     \dot{Q} = 0
     \label{eq:pde}
   \end{equation}
 #+END_EXPORT
-with \(T\) the temperature, \(\rho c_{\text{p}}\) the volumetric heat capacity, \(k_{\text{z}}\) the thermal conductivity, and \(\dot{Q}\) an internal  source or sink, e.g. due to a phase transformation. The partial differential equation is subject to boundary conditions at the two ends of the domain, which can be of the Dirichlet type:
+with \(T(z,t)\) the temperature at location \(z\) and time \(t\), \(\rho c_{\text{p}}\) the volumetric heat capacity, \(k\) the thermal conductivity, and \(\dot{Q}\) an internal  source or sink, e.g. due to a phase transformation. The partial differential equation is subject to boundary conditions at the two ends of the domain, which can be of the Dirichlet type:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     T(0,t) = T_\text{left}(t), \qquad T(L,t) = T_\text{right}(t),
@@ -115,6 +115,7 @@ with \(z_i\) and \(z_j\) the element end points. Realizing that the third term r
 
 #+CAPTION: Left: Elements in 1D domain. Right: Definition of local coordinate system and linear interpolation of temperature.
 #+NAME:   fig:elements
+#+ATTR_LATEX: :width 12cm :placement [!tb]
 [[./fig/lin_elements_sf.png]]
 
 *** Linear shape functions
@@ -129,7 +130,7 @@ The temperature inside an element is approximated as a linear interpolation betw
 with \(\zeta\) a local coordinate, as is illustrated in Figure [[fig:elements]], defined as:
 #+BEGIN_EXPORT latex
   \begin{equation*}
-    \zeta(z) = 2\frac{z - (z_j - z_i)/2}{\ell},
+    \zeta(z) = \frac{2z - (z_i + z_j)}{\ell},
   \end{equation*}
 #+END_EXPORT
 while the two shape functions are:
@@ -162,7 +163,7 @@ such that:
     \label{eq:dTdz}
   \end{equation}
 #+END_EXPORT
-which also intuitively makes sense of course. Further, noting that the shape functions do not depend on time, we can rewrite the time derivative as:
+which intuitively makes sense. Further, noting that the shape functions do not depend on time, we can rewrite the time derivative as:
 #+BEGIN_EXPORT latex
   \begin{equation}
     \frac{\partial T}{\partial t} =
@@ -183,7 +184,7 @@ Following the Galerkin method, we choose our weighting function \(w\) to be our 
     \label{eq:galerkin}
   \end{equation}
 #+END_EXPORT
-with \(N_i\) and \(N_j\) the two shape functions as defined in Equation \ref{eq:shape_functions}.
+with \(N_k\) the two shape functions as defined in Equation \ref{eq:shape_functions}.
 
 #+BEGIN_EXPORT latex
 \begin{tcolorbox}[colback=gray!5,colframe=gray!40!black,title=Matrix-vector notation]
@@ -289,10 +290,10 @@ The first term on the right hand side yields:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     \int_\ell \mathbf{N}^T \dot{Q} \text{d}z =
-    \frac{\ell}{2} \int_{-1}^{1} \mathbf{N} \text{d}\zeta \; \dot{Q} = \frac{ \dot{Q} \ell}{2} \begin{Bmatrix} 1 \\ 1 \end{Bmatrix},
+    \frac{\dot{Q}\ell}{2} \int_{-1}^{1} \mathbf{N}^T \text{d}\zeta   = \frac{ \dot{Q} \ell}{2} \begin{Bmatrix} 1 \\ 1 \end{Bmatrix},
   \end{equation*}
 #+END_EXPORT
-with \(\dot{Q}\) the heat source term for the element between nodes \(i\) and \(j\). The second term with the heat flux \(q\) on the boundary is first expanded to include both a direct heat flux \(\hat{q}\) and a flux due to convection:
+with \(\dot{Q}\) the heat source term for the element between nodes \(i\) and \(j\). The second term, with the heat flux \(q\) on the boundary, is first expanded to include both a direct heat flux \(\hat{q}\) and a flux due to convection:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     q = \hat{q} + h(T_{\infty}-T),
@@ -354,7 +355,7 @@ which intuitively makes sense. The force vector is now combined as:
   \end{equation}
 #+END_EXPORT
 
-The final element equation can now be assembled from by substituting Equations \ref{eq:C}, \ref{eq:K}, \ref{eq:H} and \ref{eq:f} in Equation \ref{eq:galerkin}:
+The final element equation can now be assembled by substituting Equations \ref{eq:C}, \ref{eq:K}, \ref{eq:H} and \ref{eq:f} in Equation \ref{eq:galerkin}:
 #+BEGIN_EXPORT latex
   \begin{equation*}
   \mathbf{C}\mathbf{\dot{T}} + (\mathbf{K} + \mathbf{H})\mathbf{T} = \mathbf{f}.
@@ -434,7 +435,7 @@ with:
   \end{equation*}
 #+END_EXPORT
 
-Now we can derive the damping matrix \(\mathbf{C}\) and the stiffness matrix \(\mathbf{K}\), in the same manner as we have done for the linear shape functions:
+Now we can derive the damping matrix \(\mathbf{C}\) and the stiffness matrix \(\mathbf{K}\) in the same manner as we have done for the linear shape functions:
 #+BEGIN_EXPORT latex
   \begin{equation*}
     \mathbf{C} = \frac{\ell\rho c_\text{p}}{2}\int_{-1}^{1} \mathbf{N}^T\mathbf{N} \text{d}\zeta =
@@ -448,13 +449,19 @@ Now we can derive the damping matrix \(\mathbf{C}\) and the stiffness matrix \(\
     \frac{k}{3\ell}
     \left[\begin{matrix} 7 & -8 & 1\\
                          -8 & 16 & -8\\
-                         1 & -8 & 7\end{matrix}\right].
+                         1 & -8 & 7\end{matrix}\right],
+  \end{equation*}
+#+END_EXPORT
+while the term for the internal heat source \(\dot{Q}\) is evaulated as:
+#+BEGIN_EXPORT latex
+  \begin{equation*}
+    \frac{\dot{Q}\ell}{2} \int_{-1}^{1} \mathbf{N}^T \text{d}\zeta   = \frac{ \dot{Q} \ell}{6} \begin{Bmatrix} 1 \\ 4 \\ 1 \end{Bmatrix}.
   \end{equation*}
 #+END_EXPORT
 
 ** Temporal discretization
 
-The final step is to integrate the equation with time. For this purpose, we will discretize the temporal variable will using the so-called \(\Theta\)-method:
+The final step is to integrate the equation with respect to time. For this purpose, we will discretize the temporal variable using the so-called \(\Theta\)-method:
 #+BEGIN_EXPORT latex
   \begin{equation}
     \mathbf{C} \frac{\mathbf{T}_{\text{n}+1} - \mathbf{T}_\text{n}}{\Delta t} +
@@ -465,7 +472,7 @@ The final step is to integrate the equation with time. For this purpose, we will
     \label{eq:theta}
   \end{equation}
 #+END_EXPORT
-where \(\Theta \in [0, 1]\). Common values of \(\Theta\) are:
+with the subscript \(n\) denoting the time step, and where \(\Theta \in [0, 1]\). Common values of \(\Theta\) are:
 #+BEGIN_EXPORT latex
   \begin{eqnarray*}
     \Theta =& 0,   &\qquad\text{(Explit Euler)}\\
@@ -482,14 +489,14 @@ Equation \ref{eq:theta} can be rearranged as:
     \mathbf{C} - \Delta t(1-\Theta)(\mathbf{K}+\mathbf{H})
     \Bigr) \mathbf{T}_{\text{n}} +
     \Delta t(1-\Theta)\mathbf{f}_{\text{n}} +
-    \Delta t\Theta\mathbf{f}_{\text{n}+1}.
+    \Delta t\Theta\mathbf{f}_{\text{n}+1},
   \end{equation*}
 #+END_EXPORT
-
+which can be solved to obtain the temperatures for each time step.
 
 * Validation
 
-The finite elements derived here were  implemented in an object-oriented Python code called =thermesh=, which can be found on the author's [[https://github.com/wjbg][Github]] page. Please note, with the focus on readability, the code is far from optimized. Nevertheless, I believe it should still be more than fast enough for most problems. This section presents three short validation cases to show that the code is implemented correctly. Please note that, although all presented cases use linear elements, the code was also validated for the quadratic elements Details on material properties and dimensions used for each case can be found in the respective Python file.
+The finite elements derived here were  implemented in an object-oriented Python code called =thermesh=, which can be found on the author's [[https://github.com/wjbg][Github]] page. Please note that, with the focus on readability, the code is far from optimized. Nevertheless, I believe it should still be more than fast enough for most problems. This section presents three short validation cases to show that the code is implemented correctly. Although all presented cases use linear elements, the code was also validated for the quadratic elements. Details on material properties and dimensions used for each case can be found in the respective Python files.
 
 ** Step temperature at boundary
 
@@ -498,7 +505,7 @@ Consider a domain of length \(L\) with a uniform initial temperature \(T_0\). Fo
   \begin{eqnarray*}
     T(x, 0) =& T_0\\
     T(0, t) =& T_0\\
-    T(L, t) =& T_{\text{end}}
+    T(L, t) =& T_{\text{end}}.
   \end{eqnarray*}
 #+END_EXPORT
 In case the initial temperature equals 0.0 \(^{\circ}\)C , the analytical solution\footnote{The Mathematics of Diffusion, Crank, 1975, pp 49-50.} yields:
@@ -510,7 +517,7 @@ In case the initial temperature equals 0.0 \(^{\circ}\)C , the analytical soluti
          \exp\left(-\alpha N^2 \pi^2 t / L^2 \right),
   \end{equation*}
 #+END_EXPORT
-with \(\alpha = k/\rho c_{\text{p}}\) the thermal diffusivity. The left graph in Figure \ref{fig:step_compare} shows the temperature distribution at different times. Code listing \ref{lst:step} illustrates how to solve this problem using =thermesh=. The right graphs in Figure \ref{fig:step_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in =step_change.py=.
+with \(\alpha = k/\rho c_{\text{p}}\) the thermal diffusivity. The left graph in Figure \ref{fig:step_compare} shows the temperature distribution at different times. Code listing \ref{lst:step} illustrates how to solve this problem using =thermesh=. The right graph in Figure \ref{fig:step_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in =step_change.py=.
 
 #+BEGIN_EXPORT latex
 \lstset{basicstyle=\ttfamily}
@@ -546,7 +553,7 @@ t, T = tm.solve_ht(domain, solver)
 #+END_EXPORT
 
 #+BEGIN_EXPORT latex
-\begin{figure}
+\begin{figure}[tbh]
 \centering
 \begin{minipage}{.5\textwidth}
   \centering
@@ -563,7 +570,15 @@ t, T = tm.solve_ht(domain, solver)
 
 ** Constant heat flux at boundary of semi-infinite solid
 
-Consider a semi-infinite domain with a uniform initial temperature. The domain is subjected to a constant heat flux \(\hat{q}\) at the boundary which causes the temperature to increase. The analytical solution\footnote{Heat Transfer, Nillis \& Klein, 2008, p 362.} for the temperature increase \(\Delta T\) in the domain yields:
+Consider a semi-infinite domain with a uniform initial temperature. The domain is subjected to a constant heat flux \(\hat{q}\) at the boundary which causes the temperature to increase:
+#+BEGIN_EXPORT latex
+  \begin{eqnarray*}
+    T(x, 0) =& T_0\\
+    q(0, t) =& \hat{q}\\
+    T(L, t) =& T_0.
+  \end{eqnarray*}
+#+END_EXPORT
+The analytical solution\footnote{Heat Transfer, Nillis \& Klein, 2008, p 362.} for the temperature increase \(\Delta T\) in the domain yields:
 #+BEGIN_EXPORT latex
   \begin{equation*}
   T(x,t) - T_0(x,t) =
@@ -574,7 +589,7 @@ Consider a semi-infinite domain with a uniform initial temperature. The domain i
                   \right],
   \end{equation*}
 #+END_EXPORT
-with \(\erfc\) the complementary error function. The left graph in \ref{fig:flux_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:flux} illustrates the code to solve this problem using =thermesh=. Of course, one has to make sure that the domain is large enough (or the time short enough) to be considered a semi-infinite solid in this case. The right graphs in Figure \ref{fig:flux_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =constant_heat_flux.py=.
+with \(\erfc\) the complementary error function. The left graph in \ref{fig:flux_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:flux} illustrates the code to solve this problem using =thermesh=. Of course, one has to make sure that the domain is large enough (or the time short enough) for it to be considered a semi-infinite solid. The right graph in Figure \ref{fig:flux_compare} shows the finite element solution for 10 linear elements of equal length. Good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =constant_heat_flux.py=.
 
 #+BEGIN_EXPORT latex
 \lstset{basicstyle=\ttfamily}
@@ -613,7 +628,15 @@ t, T = tm.solve_ht(domain, solver)
 
 ** Convective boundary condition
 
-In the last example, we again consider a semi-infinite domain with a uniform initial temperature. The domain is now subjected to a convective boundary condition with a heat transfer coefficient \(h\) and a far field temperature \(T_{\infty}\). The analytical solution\footnote{See footnote 2.} for the temperature increase \(\Delta T\) in the domain yields:
+In the last example, we again consider a semi-infinite domain with a uniform initial temperature. The domain is now subjected to a convective boundary condition with a heat transfer coefficient \(h\) and a far field temperature \(T_{\infty}\).
+#+BEGIN_EXPORT latex
+  \begin{eqnarray*}
+    T(x, 0) =& T_0\\
+    q(0, t) =& h(T_{\infty} - T(0,t))\\
+    T(L, t) =& T_0.
+  \end{eqnarray*}
+#+END_EXPORT
+The analytical solution\footnote{See footnote 2.} for the temperature increase \(\Delta T\) in the domain yields:
 #+BEGIN_EXPORT latex
   \begin{equation*}
   \Delta T(x,t) = (T_{\infty} - T_0)
@@ -623,7 +646,7 @@ In the last example, we again consider a semi-infinite domain with a uniform ini
   \end{equation*}
 #+END_EXPORT
 
-The left graph in \ref{fig:conv_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:conv} illustrates the code to solve this problem using =thermesh=. The right graphs in Figure \ref{fig:flux_compare} shows the finite element solution for 10 linear elements of equal length. As can be seen, also here good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =convective_bc.py=.
+The left graph in \ref{fig:conv_compare} shows the temperature increase at 2, 10 and 25 seconds. Code listing \ref{lst:conv} illustrates the code to solve this problem using =thermesh=. The right graph in Figure \ref{fig:conv_compare} shows the finite element solution for 10 linear elements of equal length. As can be seen, also here good comparison is obtained between the numerical and analytical solution. The code for this comparison is available in the Python file =convective_bc.py=.
 
 #+BEGIN_EXPORT latex
 \lstset{basicstyle=\ttfamily}
@@ -660,5 +683,3 @@ t, T = tm.solve_ht(domain, solver)
 \label{fig:conv_compare}
 \end{figure}
 #+END_EXPORT
-
-* Final remarks
