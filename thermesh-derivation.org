@@ -32,7 +32,7 @@ The present document presents the derivation of a element code for one dimension
 In the case of 1D heat conduction, the governing partial differential equation reads:
 #+BEGIN_EXPORT latex
   \begin{equation}
-    \rho c_\text{p}\frac{\partial T}{\partial z} -
+    \rho c_\text{p}\frac{\partial T}{\partial t} -
     k\frac{\partial^2 T}{\partial z^2} -
     \dot{Q} = 0
     \label{eq:pde}
