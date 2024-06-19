@@ -23,7 +23,7 @@
 
 * Introduction
 
-The present document presents the derivation of a element code for one dimensional transient heat conduction problems using both linear and quadratic elements. The code has been implemented in a Python package called =thermesh= is available for download from the author's Github page. Three validation cases are presented at the end of this document to show that the code is implemented correctly. Further, the validation cases can be used as examples and inspiration.
+The present document presents the derivation of a finite element code for one dimensional transient heat conduction problems using both linear and quadratic elements. The code has been implemented in a Python package called =thermesh= is available for download from the author's Github page. Three validation cases are presented at the end of this document to show that the code is implemented correctly. Further, the validation cases can be used as examples and inspiration.
 
 * Derivation
 
@@ -80,7 +80,7 @@ with \(w\) a weighting function.
 
 ** Discretization in space
 
-The domain in \(N\) is now split up in smaller elements, as is indicated in Figure [[fig:elements]] which shows an element \((e)\) of length \(\ell\) that is bounded by the nodes \(i\) and \(j\). The weighted residual (Equation \ref{eq:weighted_residual}) can now be rewritten as:
+The domain is now split up in \(N\) smaller elements, as is indicated in Figure [[fig:elements]] which shows an element \((e)\) of length \(\ell\) that is bounded by the nodes \(i\) and \(j\). The weighted residual (Equation \ref{eq:weighted_residual}) can now be rewritten as:
 #+BEGIN_EXPORT latex
   \begin{equation}
     \sum_{e=1}^N
