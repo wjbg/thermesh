@@ -63,9 +63,12 @@ class Domain:
         coefficient and far field temperature, respectively, while "q"
         represents a direct flux on the surface which is directed inwards.
 
-    constitutive_model : function
-        Function that takes temperature as an input and provides a
-        dictionary with the following keys: k, cp, rho.
+    constitutive_model : list[function]
+        Functions that takes temperature as an input and provides a
+        dictionary with the following keys: k, cp, rho. The list has a
+        length equal to the number of subdomains in the mesh. The i-th
+        function in the list belongs to the i-th subdomain.
+
 
     t : float
         Time.
@@ -93,7 +96,7 @@ class Domain:
 
     """
 
-    def __init__(self, mesh: Mesh, constitutive_model: Callable,
+    def __init__(self, mesh: Mesh, constitutive_model: list[Callable],
                  bc: dict[str, float] = {}):
 
         self.mesh = mesh
@@ -154,8 +157,10 @@ class Domain:
         """Returns domain stiffness and damping matrix."""
         K = np.zeros((self.mesh.nn, self.mesh.nn))
         C = np.zeros((self.mesh.nn, self.mesh.nn))
-        for c, elem in zip(self.mesh._conn, self.mesh.elem):
-            mat = self.constitutive_model(self.T[c].mean())
+        for c, elem, sd in zip(self.mesh._conn,
+                               self.mesh.elem,
+                               self.mesh.subdomain):
+            mat = self.constitutive_model[sd](self.T[c].mean())
             cols = np.tile(c, [len(c), 1])
             rows = np.tile(c[np.newaxis].T, [1, len(c)])
             K[rows, cols] += elem.K(mat)
@@ -263,6 +268,10 @@ class Mesh:
         Number of nodes.
     nel : int
         Number of elements.
+    subdomain : list[int] (defaults to a list with zeros)
+        Number that indicates the subdomain in the mesh. Correlates
+        with the constitutive model that will be used for the
+        analysis.
 
     """
 
@@ -284,6 +293,7 @@ class Mesh:
                                    i in np.arange(0, self.nn-1, element.order)])
             self.elem = [element(self.nodes[c]) for c in self._conn]
             self.nel = len(self.elem)
+            self.subdomain = [0]*self.nel
         else:
             raise ValueError("node and element number mismatch")
 
