@@ -73,7 +73,7 @@ with plt.style.context("report_style.mplstyle"):
     plt.text(0.30, 0.4, "100")
     plt.tight_layout()
     # plt.savefig("../img/step_analytical_sol.png", dpi=600)
-    plt.show(block=False)
+    # plt.show(block=False)
 
 
 #
@@ -105,7 +105,7 @@ bc = [{"T": T_bc[0]},  # T on the left
 cpeek = tm.isothermal_model(k, rho, cp)
 
 # Define and solve problem
-domain = tm.Domain(mesh, cpeek, bc)
+domain = tm.Domain(mesh, [cpeek], bc)
 domain.set_T(T_0*np.ones(nn))
 
 # Solver details
@@ -134,4 +134,4 @@ with plt.style.context("report_style.mplstyle"):
     plt.text(0.30, 0.4, "100")
     plt.tight_layout()
     # plt.savefig("../img/step_FE_t0.5_dt0.1s.png", dpi=600)
-    plt.show(block=False)
+    # plt.show(block=False)
