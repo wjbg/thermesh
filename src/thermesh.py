@@ -255,6 +255,46 @@ def isothermal_model(k: float, rho: float, cp: float) -> Callable:
     return model
 
 
+def piecewise_linear_model(k: Matrix, rho: Matrix, cp: Matrix) -> Callable:
+    """Returns a function that represents an isothermal material model.
+
+    Parameter
+    ---------
+    k : np.ndarray(dim=2, dtype=float)
+        Temperature vs. thermal conductivity.
+    rho : np.ndarray(dim=2, dtype=float)
+        Temperature vs. density
+    cp : np.ndarray(dim=2, dtype=float)
+        Temperature vs. specific heat.
+
+    Returns
+    -------
+    model : Callable
+        Function that returns a dictionary with the provided
+        constitutive properties.
+
+    """
+    def model(T: float) -> dict[str, float]:
+        """An piece-wise linear constitutive model.
+
+        Parameter
+        ---------
+        T : float
+            Temperature
+
+        Returns
+        -------
+        mat : dict[str, float]
+            Dictionary with the following keys: k, rho, cp.
+
+        """
+        k_ = np.interp(T, k[:, 0], k[:, 1])  # conductivity at T
+        rho_ = np.interp(T, rho[:, 0], rho[:, 1])
+        cp_ = np.interp(T, cp[:, 0], cp[:, 1])
+        return {"k": k_, "rho": rho_, "cp": cp_}
+    return model
+
+
 class Mesh:
     """Class to represent a mesh.
 
